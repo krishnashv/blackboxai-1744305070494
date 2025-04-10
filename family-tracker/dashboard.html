@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - FamilyTrack</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        #map {
+            height: calc(100vh - 4rem);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="dashboard.html" class="flex items-center">
+                        <i class="fas fa-location-dot text-blue-600 text-2xl mr-2"></i>
+                        <span class="text-xl font-bold text-gray-800">FamilyTrack</span>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="history.html" class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-history mr-1"></i> History
+                    </a>
+                    <button id="addMemberBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                        <i class="fas fa-user-plus mr-1"></i> Add Member
+                    </button>
+                    <div class="relative" id="userMenu">
+                        <button class="flex items-center text-gray-600 hover:text-blue-600">
+                            <i class="fas fa-user-circle text-2xl"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex h-[calc(100vh-4rem)]">
+        <!-- Sidebar -->
+        <div class="w-80 bg-white shadow-lg overflow-y-auto">
+            <div class="p-4">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Family Members</h2>
+                <div class="space-y-4" id="familyMembersList">
+                    <!-- Family members will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div class="flex-1">
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Add Member Modal -->
+    <div id="addMemberModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Add Family Member</h3>
+                <form id="addMemberForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Name</label>
+                        <input type="text" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Relationship</label>
+                        <select class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                            <option>Parent</option>
+                            <option>Child</option>
+                            <option>Spouse</option>
+                            <option>Sibling</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md">
+                            Add Member
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Sample family members data
+        const familyMembers = [
+            { id: 1, name: 'John Doe', relationship: 'Parent', lat: 40.7128, lng: -74.0060 },
+            { id: 2, name: 'Jane Doe', relationship: 'Parent', lat: 40.7580, lng: -73.9855 },
+            { id: 3, name: 'Jimmy Doe', relationship: 'Child', lat: 40.7829, lng: -73.9654 }
+        ];
+
+        // Markers object to store map markers
+        const markers = {};
+
+        // Function to add marker to map
+        function addMarker(member) {
+            const marker = L.marker([member.lat, member.lng])
+                .bindPopup(`<b>${member.name}</b><br>${member.relationship}`);
+            markers[member.id] = marker;
+            marker.addTo(map);
+        }
+
+        // Function to update family members list
+        function updateFamilyMembersList() {
+            const list = document.getElementById('familyMembersList');
+            list.innerHTML = '';
+            
+            familyMembers.forEach(member => {
+                const div = document.createElement('div');
+                div.className = 'p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer';
+                div.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-900">${member.name}</h3>
+                            <p class="text-sm text-gray-500">${member.relationship}</p>
+                        </div>
+                        <i class="fas fa-map-marker-alt text-blue-600"></i>
+                    </div>
+                `;
+                div.onclick = () => {
+                    map.setView([member.lat, member.lng], 15);
+                    markers[member.id].openPopup();
+                };
+                list.appendChild(div);
+            });
+        }
+
+        // Initialize markers and list
+        familyMembers.forEach(addMarker);
+        updateFamilyMembersList();
+
+        // Modal functions
+        const modal = document.getElementById('addMemberModal');
+        const addMemberBtn = document.getElementById('addMemberBtn');
+
+        addMemberBtn.onclick = () => {
+            modal.classList.remove('hidden');
+        };
+
+        function closeModal() {
+            modal.classList.add('hidden');
+        }
+
+        // Handle add member form submission
+        document.getElementById('addMemberForm').onsubmit = (e) => {
+            e.preventDefault();
+            // In a real app, this would send data to a server
+            closeModal();
+        };
+
+        // Get user's location and center map
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const { latitude, longitude } = position.coords;
+                map.setView([latitude, longitude], 13);
+            });
+        }
+    </script>
+</body>
+</html>
